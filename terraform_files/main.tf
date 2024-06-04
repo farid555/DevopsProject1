@@ -84,7 +84,7 @@ resource "aws_instance" "my_ec2_instance1" {
     # ESTABLISHING SSH CONNECTION WITH EC2
     connection {
       type        = "ssh"
-      private_key = file("./terraform_newKey") # replace with your key-name 
+      private_key = file("./terraform_newKey.pem") # replace with your key-name 
       user        = "ec2-user"
       host        = self.public_ip
     }
