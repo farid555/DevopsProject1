@@ -1,63 +1,13 @@
-# SERVER1: 'MASTER-SERVER' (with Jenkins, Maven, Docker, Ansible, Trivy)
-# STEP1: CREATING A SECURITY GROUP FOR MAIN SERVER
-# Description: Allow SSH, HTTP, HTTPS, 8080, 8081
-resource "aws_security_group" "my_security_group1" {
-  name        = "my-security-group1"
-  description = "Allow SSH, HTTP, HTTPS, 8080 for Jenkins & Maven"
-
-  # SSH Inbound Rules
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 8081
-    to_port     = 8081
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # SSH Outbound Rules
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 
 # STEP2: CREATE AN JENKINS EC2 INSTANCE USING EXISTING PEM KEY
 # Note: i. First create a pem-key manually from the AWS console
 #      ii. Copy it in the same directory as your terraform code
 resource "aws_instance" "my_ec2_instance1" {
   ami                    = "ami-0cf10cdf9fcd62d37"
-  instance_type          = "t2.medium"
+  instance_type          = var.instance_type
+  key_name               = var.instance_keypair # paste your key-name here, do not use extension '.pem'
+  subnet_id              = module.vpc.public_subnets[0]
   vpc_security_group_ids = [aws_security_group.my_security_group1.id]
-  key_name               = "terraform_newKey" # paste your key-name here, do not use extension '.pem'
 
   # Consider EBS volume 30GB
   root_block_device {
@@ -66,7 +16,7 @@ resource "aws_instance" "my_ec2_instance1" {
   }
 
   tags = {
-    Name = "MASTER-SERVER"
+    Name = local.environment
   }
 
   user_data = <<-EOF
@@ -127,21 +77,3 @@ resource "aws_instance" "my_ec2_instance1" {
   }
 }
 
-# STEP3: OUTPUT PUBLIC IP OF EC2 INSTANCE
-output "ACCESS_YOUR_JENKINS_HERE" {
-  value = "http://${aws_instance.my_ec2_instance1.public_ip}:8080"
-}
-
-output "Jenkins_Initial_Password" {
-  value = "sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
-}
-
-# STEP4: OUTPUT PUBLIC IP OF EC2 INSTANCE
-output "MASTER_SERVER_PUBLIC_IP" {
-  value = aws_instance.my_ec2_instance1.public_ip
-}
-
-# STEP5: OUTPUT PRIVATE IP OF EC2 INSTANCE
-output "MASTER_SERVER_PRIVATE_IP" {
-  value = aws_instance.my_ec2_instance1.private_ip
-}
